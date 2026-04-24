@@ -69,7 +69,7 @@ export default function App() {
     subject: mail.subject || "(No subject)",
     body: mail.text || mail.html || "",
     timestamp: mail.createdAt ? new Date(mail.createdAt) : new Date(),
-    isRead: false,
+    isRead: mail.isRead || false,
   });
 
   // Generate a random email
