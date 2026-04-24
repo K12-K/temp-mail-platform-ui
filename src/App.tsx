@@ -110,6 +110,22 @@ export default function App() {
     }
   }, []);
 
+  const markAsRead = useCallback(async (id) => {
+    try {
+      await api.put(`/api/inbox/${state.currentEmail}/read/${id}`);
+    } catch {
+      toast.error("Failed to mark as read");
+    }
+  }, [state.currentEmail]);
+
+  const deleteEmailApi = useCallback(async (id) => {
+    try {
+      await api.delete(`/api/inbox/${state.currentEmail}/${id}`);
+    } catch {
+      toast.error("Failed to delete email");
+    }
+  }, [state.currentEmail]);
+
   useEffect(() => {
     if (state.currentEmail) {
       fetchInbox(state.currentEmail);
@@ -232,22 +248,51 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   }, [state.currentEmail]);
 
-  const handleSelectEmail = (id: string) => {
+  // const handleSelectEmail = (id: string) => {
+  //   setState(s => ({
+  //     ...s,
+  //     selectedEmailId: id,
+  //     inbox: s.inbox.map(e => e.id === id ? { ...e, isRead: true } : e)
+  //   }));
+  // };
+  const handleSelectEmail = useCallback(async (id: string) => {
     setState(s => ({
       ...s,
       selectedEmailId: id,
-      inbox: s.inbox.map(e => e.id === id ? { ...e, isRead: true } : e)
+      inbox: s.inbox.map(e =>
+        e.id === id ? { ...e, isRead: true } : e
+      )
     }));
-  };
+    await markAsRead(id);
+  }, [markAsRead]);
 
-  const handleDeleteEmail = (id: string) => {
+  // const handleDeleteEmail = (id: string) => {
+  //   setState(s => ({
+  //     ...s,
+  //     selectedEmailId: s.selectedEmailId === id ? null : s.selectedEmailId,
+  //     inbox: s.inbox.filter(e => e.id !== id)
+  //   }));
+  //   toast.error('Email deleted');
+  // };
+  const handleDeleteEmail = useCallback(async (id: string) => {
+    let deletedEmail;
     setState(s => ({
       ...s,
       selectedEmailId: s.selectedEmailId === id ? null : s.selectedEmailId,
       inbox: s.inbox.filter(e => e.id !== id)
     }));
-    toast.error('Email deleted');
-  };
+    try {
+      await deleteEmailApi(id);
+      toast.success('Email deleted');
+    } catch {
+      // rollback
+      setState(s => ({
+        ...s,
+        inbox: [deletedEmail, ...s.inbox]
+      }));
+      toast.error('Delete failed');
+    }
+  }, [deleteEmailApi]);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
