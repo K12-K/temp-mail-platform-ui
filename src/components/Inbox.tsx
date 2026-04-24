@@ -18,7 +18,7 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 pb-20">
-      <div className="flex flex-col md:flex-row gap-6 h-[600px] md:h-[700px]">
+      <div className="flex flex-col md:flex-row gap-6 h-[600px] md:h-[700px] min-h-0">
         {/* Inbox List */}
         <div className={cn(
           "flex-1 md:w-[340px] md:flex-none flex flex-col bg-white dark:bg-gray-900 border border-border dark:border-gray-800 rounded-xl overflow-hidden shadow-sm",
@@ -87,7 +87,7 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
           !selectedEmail ? "hidden md:flex bg-gray-50/30 dark:bg-black/10" : "flex"
         )}>
           {selectedEmail ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex-1 flex flex-col"
@@ -121,7 +121,7 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
                       {selectedEmail.subject}
                     </h1>
-                    
+
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-brand/10 text-brand flex items-center justify-center font-bold text-xl uppercase">
                         {selectedEmail.sender[0]}
