@@ -20,10 +20,10 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 pb-20">
-      <div className="flex flex-col md:flex-row gap-6 h-[600px] md:h-[700px] min-h-0">
+      <div className="flex flex-col md:flex-row gap-6 h-[600px] md:h-[700px] min-h-0 overflow-hidden">
         {/* Inbox List */}
         <div className={cn(
-          "flex-1 md:w-[340px] md:flex-none flex flex-col bg-white dark:bg-gray-900 border border-border dark:border-gray-800 rounded-xl overflow-hidden shadow-sm",
+          "flex-1 md:w-[340px] md:flex-none flex flex-col min-h-0 bg-white dark:bg-gray-900 border border-border dark:border-gray-800 rounded-xl overflow-hidden shadow-sm",
           selectedEmail ? "hidden md:flex" : "flex"
         )}>
           <div className="px-6 py-4 border-b border-border dark:border-gray-800 flex items-center justify-between">
@@ -92,7 +92,7 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex-1 flex flex-col"
+              className="flex-1 flex flex-col min-h-0"
             >
               {/* Toolbar */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
