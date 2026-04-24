@@ -1,10 +1,12 @@
 import React from 'react';
 import { Mail, Clock, ChevronRight, Inbox as InboxIcon, ArrowLeft, Trash2, Reply, Share2 } from 'lucide-react';
+import Linkify from 'linkify-react';
+import DOMPurify from "dompurify";
+import { motion, AnimatePresence } from 'motion/react';
 import { Email } from '../types';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { cn, formatDate } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface InboxProps {
   emails: Email[];
@@ -30,7 +32,7 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
             </h2>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {emails.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
@@ -115,7 +117,7 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-10">
+              <div className="flex-1 overflow-y-auto min-h-0 p-6 md:p-10">
                 <div className="max-w-3xl mx-auto">
                   <div className="mb-10">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
@@ -138,13 +140,23 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
                   </div>
 
                   <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    {selectedEmail.body}
+                    {/* {selectedEmail.body} */}
+                    <Linkify
+                      options={{
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        className: "text-brand underline hover:opacity-80"
+                      }}
+                    >
+                      {selectedEmail.body}
+                    </Linkify>
                   </div>
 
                   {selectedEmail.bodyHtml && (
                     <div className="mt-12 p-8 border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-white/5">
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">HTML Preview</div>
-                      <div dangerouslySetInnerHTML={{ __html: selectedEmail.bodyHtml }} />
+                      {/* <div dangerouslySetInnerHTML={{ __html: selectedEmail.bodyHtml }} /> */}
+                      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedEmail.bodyHtml) }} />
                     </div>
                   )}
                 </div>

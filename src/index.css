@@ -54,3 +54,8 @@
 .dark body {
   @apply bg-[#0c0c0e] text-[#ededed];
 }
+
+.prose a {
+  color: #6366f1;
+  text-decoration: underline;
+}
