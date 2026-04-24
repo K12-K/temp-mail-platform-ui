@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
 
-export const socket = io("https://your-backend.com", {
+export const socket = io(process.env.SERVICE_URL, {
   transports: ["websocket"],
 });
