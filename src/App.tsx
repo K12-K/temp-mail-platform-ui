@@ -61,6 +61,16 @@ export default function App() {
 
   const [copied, setCopied] = useState(false);
 
+  const mapEmail = (mail) => ({
+    id: mail.id,
+    sender: mail.from || "Unknown",
+    senderEmail: mail.from || "",
+    subject: mail.subject || "(No subject)",
+    body: mail.text || mail.html || "",
+    timestamp: mail.createdAt ? new Date(mail.createdAt) : new Date(),
+    isRead: false,
+  });
+
   // Generate a random email
   // const generateEmail = useCallback(() => {
   //   const prefix = Math.random().toString(36).substring(2, 10);
@@ -91,7 +101,9 @@ export default function App() {
   const fetchInbox = useCallback(async (email) => {
     try {
       const res = await api.get(`/api/inbox/${email}`);
-      setState(s => ({ ...s, inbox: res.data }));
+      // setState(s => ({ ...s, inbox: res.data }));
+      const mapped = (res.data || []).map(mapEmail);
+      setState(s => ({ ...s, inbox: mapped }));
     } catch {
       toast.error("Failed to load inbox");
     }
@@ -150,9 +162,14 @@ export default function App() {
     socket.emit("join_inbox", state.currentEmail);
 
     const handler = (newEmail) => {
+      // setState(s => ({
+      //   ...s,
+      //   inbox: [newEmail, ...s.inbox]
+      // }));
+      const mapped = mapEmail(newEmail);
       setState(s => ({
         ...s,
-        inbox: [newEmail, ...s.inbox]
+        inbox: [mapped, ...s.inbox]
       }));
 
       toast.info(`New email`, {
