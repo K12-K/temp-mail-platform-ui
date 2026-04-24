@@ -10,44 +10,46 @@ import { GuidePage } from './components/GuidePage';
 import { StatusPage } from './components/StatusPage';
 import { PrivacyPage, TermsPage } from './components/LegalPages';
 import { ComingSoonPage } from './components/ComingSoon';
+import { api } from "./services/api";
+import { socket } from "./services/socket";
 import { Email, Theme, AppState, AppView } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 
-const domains = ['@tempmail.pro', '@devinbox.com', '@quicktest.io', '@trashmail.net'];
+// const domains = ['@tempmail.pro', '@devinbox.com', '@quicktest.io', '@trashmail.net'];
 const INITIAL_TIME = 600; // 10 minutes
 
-const MOCK_SENDERS = [
-  { name: 'Github', email: 'noreply@github.com' },
-  { name: 'Stripe', email: 'support@stripe.com' },
-  { name: 'Vercel', email: 'notifications@vercel.com' },
-  { name: 'System Admin', email: 'admin@tempmail.pro' },
-  { name: 'Linear', email: 'no-reply@linear.app' },
-];
+// const MOCK_SENDERS = [
+//   { name: 'Github', email: 'noreply@github.com' },
+//   { name: 'Stripe', email: 'support@stripe.com' },
+//   { name: 'Vercel', email: 'notifications@vercel.com' },
+//   { name: 'System Admin', email: 'admin@tempmail.pro' },
+//   { name: 'Linear', email: 'no-reply@linear.app' },
+// ];
 
-const MOCK_SUBJECTS = [
-  'Welcome to the platform',
-  'Your verification code: 482910',
-  'Weekly summary of your activity',
-  'New login from a recognized device',
-  'Your account has been upgraded',
-  'Action required: Update your payment method',
-];
+// const MOCK_SUBJECTS = [
+//   'Welcome to the platform',
+//   'Your verification code: 482910',
+//   'Weekly summary of your activity',
+//   'New login from a recognized device',
+//   'Your account has been upgraded',
+//   'Action required: Update your payment method',
+// ];
 
-const MOCK_BODIES = [
-  "Hello,\n\nWelcome to our platform! We're excited to have you on board. Please click the button below to verify your email address.\n\nBest regards,\nThe Team",
-  "Your one-time password (OTP) is 482910. This code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.",
-  "Here is your weekly summary for the period of April 10 - April 16. You have 45 new notifications and 12 unresolved tasks.",
-  "A new login was detected on your account from a Chrome browser on macOS. If this was not you, please change your password immediately.",
-];
+// const MOCK_BODIES = [
+//   "Hello,\n\nWelcome to our platform! We're excited to have you on board. Please click the button below to verify your email address.\n\nBest regards,\nThe Team",
+//   "Your one-time password (OTP) is 482910. This code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.",
+//   "Here is your weekly summary for the period of April 10 - April 16. You have 45 new notifications and 12 unresolved tasks.",
+//   "A new login was detected on your account from a Chrome browser on macOS. If this was not you, please change your password immediately.",
+// ];
 
 export default function App() {
-  const [theme, setTheme] = useState<Theme>(() => 
+  const [theme, setTheme] = useState<Theme>(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   );
 
   const [view, setView] = useState<AppView>('dashboard');
-  
+
   const [state, setState] = useState<AppState>({
     currentEmail: '',
     inbox: [],
@@ -60,16 +62,46 @@ export default function App() {
   const [copied, setCopied] = useState(false);
 
   // Generate a random email
-  const generateEmail = useCallback(() => {
-    const prefix = Math.random().toString(36).substring(2, 10);
-    const domain = domains[Math.floor(Math.random() * domains.length)];
-    return `${prefix}${domain}`;
+  // const generateEmail = useCallback(() => {
+  //   const prefix = Math.random().toString(36).substring(2, 10);
+  //   const domain = domains[Math.floor(Math.random() * domains.length)];
+  //   return `${prefix}${domain}`;
+  // }, []);
+  const generateEmail = useCallback(async () => {
+    try {
+      const res = await api.post("/api/generate");
+      return res.data.email;
+    } catch (err) {
+      toast.error("Failed to generate email");
+      return "";
+    }
   }, []);
 
   // Initial generation
+  // useEffect(() => {
+  //   setState(s => ({ ...s, currentEmail: generateEmail() }));
+  // }, [generateEmail]);
   useEffect(() => {
-    setState(s => ({ ...s, currentEmail: generateEmail() }));
+    (async () => {
+      const email = await generateEmail();
+      setState(s => ({ ...s, currentEmail: email }));
+    })();
   }, [generateEmail]);
+
+  const fetchInbox = useCallback(async (email) => {
+    try {
+      const res = await api.get(`/api/inbox/${email}`);
+      setState(s => ({ ...s, inbox: res.data }));
+    } catch {
+      toast.error("Failed to load inbox");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (state.currentEmail) {
+      fetchInbox(state.currentEmail);
+    }
+  }, [state.currentEmail, fetchInbox]);
 
   // Timer logic
   useEffect(() => {
@@ -86,45 +118,83 @@ export default function App() {
   }, []);
 
   // Simulate incoming emails
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) { // 30% chance every 10s to get an email
-        const sender = MOCK_SENDERS[Math.floor(Math.random() * MOCK_SENDERS.length)];
-        const newEmail: Email = {
-          id: Math.random().toString(36).substring(7),
-          sender: sender.name,
-          senderEmail: sender.email,
-          subject: MOCK_SUBJECTS[Math.floor(Math.random() * MOCK_SUBJECTS.length)],
-          body: MOCK_BODIES[Math.floor(Math.random() * MOCK_BODIES.length)],
-          timestamp: new Date(),
-          isRead: false,
-        };
-        
-        setState(s => ({
-          ...s,
-          inbox: [newEmail, ...s.inbox]
-        }));
-        
-        toast.info(`New email from ${sender.name}`, {
-          description: newEmail.subject,
-        });
-      }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (Math.random() > 0.7) { // 30% chance every 10s to get an email
+  //       const sender = MOCK_SENDERS[Math.floor(Math.random() * MOCK_SENDERS.length)];
+  //       const newEmail: Email = {
+  //         id: Math.random().toString(36).substring(7),
+  //         sender: sender.name,
+  //         senderEmail: sender.email,
+  //         subject: MOCK_SUBJECTS[Math.floor(Math.random() * MOCK_SUBJECTS.length)],
+  //         body: MOCK_BODIES[Math.floor(Math.random() * MOCK_BODIES.length)],
+  //         timestamp: new Date(),
+  //         isRead: false,
+  //       };
 
-  const handleRefresh = useCallback(() => {
-    setState(s => ({
-      ...s,
-      currentEmail: generateEmail(),
-      timeLeft: INITIAL_TIME,
-      isExpired: false,
+  //       setState(s => ({
+  //         ...s,
+  //         inbox: [newEmail, ...s.inbox]
+  //       }));
+
+  //       toast.info(`New email from ${sender.name}`, {
+  //         description: newEmail.subject,
+  //       });
+  //     }
+  //   }, 10000);
+  //   return () => clearInterval(interval);
+  // }, []);
+  useEffect(() => {
+    if (!state.currentEmail) return;
+
+    socket.emit("join_inbox", state.currentEmail);
+
+    const handler = (newEmail) => {
+      setState(s => ({
+        ...s,
+        inbox: [newEmail, ...s.inbox]
+      }));
+
+      toast.info(`New email`, {
+        description: newEmail.subject,
+      });
+    };
+
+    socket.on("new_email", handler);
+
+    return () => {
+      socket.off("new_email", handler);
+    };
+  }, [state.currentEmail]);
+
+  // const handleRefresh = useCallback(() => {
+  //   setState(s => ({
+  //     ...s,
+  //     currentEmail: generateEmail(),
+  //     timeLeft: INITIAL_TIME,
+  //     isExpired: false,
+  //     inbox: [],
+  //     selectedEmailId: null,
+  //   }));
+  //   toast.success('Email regenerated', {
+  //     description: 'Your new temporary address is ready.'
+  //   });
+  // }, [generateEmail]);
+  const handleRefresh = useCallback(async () => {
+    const email = await generateEmail();
+
+    setState({
+      currentEmail: email,
       inbox: [],
       selectedEmailId: null,
-    }));
-    toast.success('Email regenerated', {
-      description: 'Your new temporary address is ready.'
+      timeLeft: INITIAL_TIME,
+      isExpired: false,
+      isRegenerating: false,
     });
+
+    socket.emit("join_inbox", email);
+
+    toast.success("New email generated");
   }, [generateEmail]);
 
   const handleCopy = useCallback(() => {
@@ -177,12 +247,12 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       <Toaster position="top-right" richColors theme={theme} />
-      <Header 
-        theme={theme} 
-        onThemeToggle={toggleTheme} 
-        onNavigate={(newView) => setView(newView)} 
+      <Header
+        theme={theme}
+        onThemeToggle={toggleTheme}
+        onNavigate={(newView) => setView(newView)}
       />
-      
+
       <main className="flex-1">
         <AnimatePresence mode="wait">
           {view === 'dashboard' && (
@@ -193,79 +263,79 @@ export default function App() {
               exit={{ opacity: 0 }}
             >
               <section className="relative overflow-hidden pt-12">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-brand/5 blur-3xl rounded-full -z-10 animate-pulse"></div>
-            
-            <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="max-w-4xl mx-auto px-4 text-center"
-            >
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-gray-900 dark:text-gray-100">
-                Forget spam, keep your inbox <span className="text-brand">pro</span>.
-              </h2>
-              <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-                The most advanced disposable email service for developers. Get a professional temporary address that actually works for all your testing needs.
-              </p>
-            </motion.div>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-brand/5 blur-3xl rounded-full -z-10 animate-pulse"></div>
 
-            <EmailDisplay 
-              email={state.currentEmail}
-              timeLeft={state.timeLeft}
-              isExpired={state.isExpired}
-              onRefresh={handleRefresh}
-              onCopy={handleCopy}
-              copied={copied}
-            />
-        </section>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-4xl mx-auto px-4 text-center"
+                >
+                  <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-gray-900 dark:text-gray-100">
+                    Forget spam, keep your inbox <span className="text-brand">pro</span>.
+                  </h2>
+                  <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+                    The most advanced disposable email service for developers. Get a professional temporary address that actually works for all your testing needs.
+                  </p>
+                </motion.div>
 
-        <Inbox 
-          emails={state.inbox}
-          selectedId={state.selectedEmailId}
-          onSelect={handleSelectEmail}
-          onDelete={handleDeleteEmail}
-        />
-        
-        {/* Call to Action for Developers */}
-        <section className="max-w-6xl mx-auto px-4 mb-20">
-           <div className="bg-brand rounded-2xl p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="relative z-10 flex-1">
-                 <h3 className="text-2xl md:text-3xl font-bold mb-4">Integrated with your workflow</h3>
-                 <p className="text-brand-muted mb-6 max-w-md">
-                   Automate your sign-up tests with our robust API. Get programmatic access to temporary inboxes and message content.
-                 </p>
-                 <div className="flex gap-4">
-                    <button 
-                      onClick={() => setView('api-docs')}
-                      className="bg-white text-brand px-6 py-3 rounded-lg font-bold hover:bg-white/90 transition-colors"
-                    >
-                      View API Docs
-                    </button>
-                    <button className="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition-colors">
-                      Learn More
-                    </button>
-                 </div>
-              </div>
-              
-              <div className="relative z-10 flex-none bg-black/20 p-6 rounded-xl border border-white/10 font-mono text-sm">
-                 <div className="flex gap-2 mb-4">
-                    <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
-                 </div>
-                 <div className="text-gray-400"># Fetch your inbox via curl</div>
-                 <div className="flex gap-2 text-brand-muted">
-                    <span className="text-emerald-400">curl</span>
-                    <span>-X GET "https://api.fluxmail.io/v1/inbox"</span>
-                 </div>
-                 <div className="mt-2 text-gray-400"># Response</div>
-                 <div className="text-emerald-400">{"{ \"status\": \"success\", \"inbox\": [] }"}</div>
-              </div>
+                <EmailDisplay
+                  email={state.currentEmail}
+                  timeLeft={state.timeLeft}
+                  isExpired={state.isExpired}
+                  onRefresh={handleRefresh}
+                  onCopy={handleCopy}
+                  copied={copied}
+                />
+              </section>
 
-              {/* Decorative blobs */}
-              <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
-              <div className="absolute -top-12 -left-12 w-48 h-48 bg-black/10 rounded-full blur-2xl"></div>
-           </div>
-        </section>
+              <Inbox
+                emails={state.inbox}
+                selectedId={state.selectedEmailId}
+                onSelect={handleSelectEmail}
+                onDelete={handleDeleteEmail}
+              />
+
+              {/* Call to Action for Developers */}
+              <section className="max-w-6xl mx-auto px-4 mb-20">
+                <div className="bg-brand rounded-2xl p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="relative z-10 flex-1">
+                    <h3 className="text-2xl md:text-3xl font-bold mb-4">Integrated with your workflow</h3>
+                    <p className="text-brand-muted mb-6 max-w-md">
+                      Automate your sign-up tests with our robust API. Get programmatic access to temporary inboxes and message content.
+                    </p>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setView('api-docs')}
+                        className="bg-white text-brand px-6 py-3 rounded-lg font-bold hover:bg-white/90 transition-colors"
+                      >
+                        View API Docs
+                      </button>
+                      <button className="bg-white/10 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition-colors">
+                        Learn More
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex-none bg-black/20 p-6 rounded-xl border border-white/10 font-mono text-sm">
+                    <div className="flex gap-2 mb-4">
+                      <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                      <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                    </div>
+                    <div className="text-gray-400"># Fetch your inbox via curl</div>
+                    <div className="flex gap-2 text-brand-muted">
+                      <span className="text-emerald-400">curl</span>
+                      <span>-X GET "https://api.fluxmail.io/v1/inbox"</span>
+                    </div>
+                    <div className="mt-2 text-gray-400"># Response</div>
+                    <div className="text-emerald-400">{"{ \"status\": \"success\", \"inbox\": [] }"}</div>
+                  </div>
+
+                  {/* Decorative blobs */}
+                  <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
+                  <div className="absolute -top-12 -left-12 w-48 h-48 bg-black/10 rounded-full blur-2xl"></div>
+                </div>
+              </section>
             </motion.div>
           )}
 
