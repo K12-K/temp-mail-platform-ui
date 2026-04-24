@@ -60,6 +60,7 @@ export default function App() {
   });
 
   const [copied, setCopied] = useState(false);
+  const [isRefreshingInbox, setIsRefreshingInbox] = useState(false);
 
   const mapEmail = (mail) => ({
     id: mail.id,
@@ -214,6 +215,16 @@ export default function App() {
     toast.success("New email generated");
   }, [generateEmail]);
 
+  const handleInboxRefresh = useCallback(async () => {
+    if (!state.currentEmail) return;
+
+    setIsRefreshingInbox(true);
+    await fetchInbox(state.currentEmail);
+    setIsRefreshingInbox(false);
+
+    toast.success("Inbox refreshed");
+  }, [state.currentEmail, fetchInbox]);
+
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(state.currentEmail);
     setCopied(true);
@@ -310,6 +321,8 @@ export default function App() {
                 selectedId={state.selectedEmailId}
                 onSelect={handleSelectEmail}
                 onDelete={handleDeleteEmail}
+                onRefresh={handleInboxRefresh}
+                isRefreshing={isRefreshingInbox}
               />
 
               {/* Call to Action for Developers */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Clock, ChevronRight, Inbox as InboxIcon, ArrowLeft, Trash2, Reply, Share2 } from 'lucide-react';
+import { Mail, Clock, ChevronRight, Inbox as InboxIcon, ArrowLeft, Trash2, Reply, Share2, RefreshCw } from 'lucide-react';
 import Linkify from 'linkify-react';
 import DOMPurify from "dompurify";
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,9 +13,11 @@ interface InboxProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
 }
 
-export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
+export function Inbox({ emails, selectedId, onSelect, onDelete, onRefresh, isRefreshing }: InboxProps) {
   const selectedEmail = emails.find(e => e.id === selectedId);
 
   return (
@@ -30,6 +32,14 @@ export function Inbox({ emails, selectedId, onSelect, onDelete }: InboxProps) {
             <h2 className="font-bold text-sm text-gray-900 dark:text-gray-100 uppercase tracking-tight">
               Inbox ({emails.length})
             </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRefresh}
+              className="h-8 w-8"
+            >
+              <RefreshCw size={16} className={cn("text-gray-500", isRefreshing && "animate-spin")} />
+            </Button>
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0">
